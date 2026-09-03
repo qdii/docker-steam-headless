@@ -72,6 +72,7 @@ RUN \
             wget \
             xmlstarlet \
             xz \
+            wireguard-tools \
     && \
     echo "**** Install python ****" \
 	    && pacman -Syu --noconfirm --needed \
@@ -495,7 +496,13 @@ ENV \
     STEAM_ARGS="-silent" \
     ENABLE_SUNSHINE="true" \
     ENABLE_EVDEV_INPUTS="true" \
-    ENABLE_WOL_POWER_MANAGER="false" 
+    ENABLE_WOL_POWER_MANAGER="false" \
+    WIREGUARD_ENABLED="false" \
+    WIREGUARD_PORT="51820" \
+    WIREGUARD_ADDRESS="10.13.13.1/24" \
+    WIREGUARD_PRIVATE_KEY="" \
+    WIREGUARD_PEER_PUBLIC_KEY="" \
+    WIREGUARD_PEER_ALLOWED_IPS=""
 
 # Configure required ports
 ENV \
@@ -504,6 +511,7 @@ ENV \
 
 # Expose the required ports
 EXPOSE 8083
+EXPOSE 51820/udp
 
 # Set entrypoint
 RUN chmod +x /entrypoint.sh
