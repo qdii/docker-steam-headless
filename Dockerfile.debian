@@ -502,7 +502,7 @@ RUN \
     && \
     echo "**** Download latest Sunshine release ****" \
         && SUNSHINE_RELEASE=$(curl -sX GET "https://api.github.com/repos/LizardByte/Sunshine/releases/latest" | jq -r '.tag_name') \
-        && SUNSHINE_URL=$(curl -sX GET "https://api.github.com/repos/LizardByte/Sunshine/releases/latest" | jq -r '.assets[] | select(.name | contains("sunshine-debian-trixie-amd64.deb")) | .browser_download_url') \
+        && SUNSHINE_URL=$(curl -sX GET "https://api.github.com/repos/LizardByte/Sunshine/releases/latest" | jq -r '.assets[] | select(.name | contains("+debiantrixie_amd64.deb")) | .browser_download_url') \
         && echo "Downloading Sunshine ${SUNSHINE_RELEASE} from ${SUNSHINE_URL}" \
         && wget -O /usr/src/sunshine.deb "${SUNSHINE_URL}" \
     && \
