@@ -6,9 +6,22 @@ if [ "${WIREGUARD_ENABLED:-}" != "true" ]; then
     exit 0
 fi
 
+# Ensure boringtun is used for userspace implementation if wg-quick is called later
+export WG_QUICK_USERSPACE_IMPLEMENTATION="${WG_QUICK_USERSPACE_IMPLEMENTATION:-boringtun}"
+
 if ! command -v wg >/dev/null 2>&1; then
     echo "Error: wg command not found. Please ensure wireguard-tools is installed." >&2
     exit 1
+fi
+
+if ! command -v boringtun >/dev/null 2>&1 && ! command -v boringtun-cli >/dev/null 2>&1; then
+    echo "Error: boringtun command not found. Please ensure boringtun is installed." >&2
+    exit 1
+fi
+
+# Ensure cap_net_admin capability is set on boringtun
+if command -v setcap >/dev/null 2>&1; then
+    setcap cap_net_admin+epi /usr/local/bin/boringtun-cli 2>/dev/null || true
 fi
 
 # Validate Port

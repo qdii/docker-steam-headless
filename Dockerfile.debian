@@ -1,5 +1,10 @@
+FROM rust:slim AS boringtun-builder
+RUN cargo install boringtun-cli
+
 FROM debian:trixie-slim
 LABEL maintainer="Josh.5 <jsunnex@gmail.com>"
+COPY --from=boringtun-builder /usr/local/cargo/bin/boringtun-cli /usr/local/bin/boringtun-cli
+RUN ln -sf /usr/local/bin/boringtun-cli /usr/local/bin/boringtun
 
 # Update package repos
 ARG DEBIAN_FRONTEND=noninteractive
@@ -595,3 +600,6 @@ EXPOSE 51820/udp
 # Set entrypoint
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
+
+# Set capabilities for boringtun
+RUN setcap cap_net_admin+epi /usr/local/bin/boringtun-cli
