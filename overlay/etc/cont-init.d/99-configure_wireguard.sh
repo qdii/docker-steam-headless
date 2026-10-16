@@ -41,45 +41,60 @@ if [ "${WIREGUARD_ENABLED:-}" = "true" ]; then
       PRIVATE_KEY="$WIREGUARD_PRIVATE_KEY"
   else
       PRIVATE_KEY=$(wg genkey)
-      echo "$PRIVATE_KEY" > /etc/wireguard/privatekey
   fi
+  echo "$PRIVATE_KEY" >/etc/wireguard/privatekey
 
   PUBLIC_KEY=$(echo "$PRIVATE_KEY" | wg pubkey)
   echo "WireGuard Public Key: $PUBLIC_KEY"
 
-  cat <<EOF > /etc/wireguard/wg0.conf
-  [Interface]
-  PrivateKey = $PRIVATE_KEY
-  ListenPort = $PORT
-  Address = $ADDRESS
-  EOF
+  cat <<EOF >/etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = $PRIVATE_KEY
+ListenPort = $PORT
+Address = $ADDRESS
+EOF
 
+  KEYS_STR=""
+  IPS_STR=""
   if [ -n "${WIREGUARD_PEER_PUBLIC_KEYS:-}" ]; then
-      # Strip all whitespace from the input strings to prevent issues with spaces after commas
-      CLEAN_KEYS="${WIREGUARD_PEER_PUBLIC_KEYS//[[:space:]]/}"
-      CLEAN_IPS="${WIREGUARD_PEER_ALLOWED_IPS//[[:space:]]/}"
+      KEYS_STR="$WIREGUARD_PEER_PUBLIC_KEYS"
+      IPS_STR="${WIREGUARD_PEER_ALLOWED_IPS:-}"
+  elif [ -n "${WIREGUARD_PEER_PUBLIC_KEY:-}" ]; then
+      KEYS_STR="$WIREGUARD_PEER_PUBLIC_KEY"
+      IPS_STR="${WIREGUARD_PEER_ALLOWED_IPS:-}"
+  fi
 
-      IFS=',' read -ra KEYS <<< "$CLEAN_KEYS"
-      IFS=',' read -ra IPS <<< "$CLEAN_IPS"
+  if [ -n "$KEYS_STR" ]; then
+      # Determine delimiter: use ';' if present in WIREGUARD_PEER_ALLOWED_IPS, otherwise ','
+      DELIM=","
+      if [[ "$IPS_STR" == *";"* ]]; then
+          DELIM=";"
+      fi
+
+      # Strip all whitespace from the input strings to prevent issues with spaces
+      CLEAN_KEYS="${KEYS_STR//[[:space:]]/}"
+      CLEAN_IPS="${IPS_STR//[[:space:]]/}"
+
+      IFS="$DELIM" read -ra KEYS <<<"$CLEAN_KEYS"
+      IFS="$DELIM" read -ra IPS <<<"$CLEAN_IPS"
 
       if [ "${#KEYS[@]}" -ne "${#IPS[@]}" ]; then
-          echo "Error: The number of WIREGUARD_PEER_PUBLIC_KEYS (${#KEYS[@]}) does not match the number of WIREGUARD_PEER_ALLOWED_IPS (${#IPS[@]})." >&2
+          echo "Error: The number of keys (${#KEYS[@]}) does not match the number of IPs (${#IPS[@]})." >&2
           exit 1
       fi
 
       for i in "${!KEYS[@]}"; do
           if [ -z "${KEYS[$i]}" ] || [ -z "${IPS[$i]}" ]; then
-              echo "Error: Empty peer configuration detected (check for trailing commas or empty entries)." >&2
+              echo "Error: Empty peer configuration detected (check for trailing delimiters or empty entries)." >&2
               exit 1
           fi
-          cat <<EOF >> /etc/wireguard/wg0.conf
-  [Peer]
-  PublicKey = ${KEYS[$i]}
-  AllowedIPs = ${IPS[$i]}
-  EOF
+      cat <<EOF >>/etc/wireguard/wg0.conf
+[Peer]
+PublicKey = ${KEYS[$i]}
+AllowedIPs = ${IPS[$i]}
+EOF
       done
   fi
 
   chmod 600 /etc/wireguard/wg0.conf
 fi
-
