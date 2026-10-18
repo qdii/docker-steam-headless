@@ -44,8 +44,11 @@ sync_input_nodes() {
 sunshine_inputs_present() {
     for name_file in /sys/class/input/*/device/name; do
         [[ -f "${name_file}" ]] || continue
-        case "$(cat "${name_file}" 2>/dev/null || true)" in
-            *passthrough*|Sunshine*)
+        # Convert name to lowercase for robust, case-insensitive matching
+        local name
+        name=$(cat "${name_file}" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
+        case "$name" in
+            *passthrough*|*sunshine*|*lizardbyte*|*libvirtualhid*)
                 return 0
                 ;;
         esac
